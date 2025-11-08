@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>小羊你有信哦小羊</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #ffe7f2 0%, #ffeef7 35%, #f6f2ff 70%, #fcefdc 100%);
+      overflow: hidden;
+      height: 100vh;
+      color: #333;
+    }
+    .scene {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .hidden {
+      display: none;
+    }
+
+    /* 小背景元素 */
+    .bg-icon {
+      position: absolute;
+      font-size: 20px;
+      opacity: 0.6;
+      animation: floatBg 6s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 1;
+    }
+    @keyframes floatBg {
+      from { transform: translateY(0) scale(1); }
+      to   { transform: translateY(-12px) scale(1.05); }
+    }
+
+    /* 照片：初始在中间，点击后飞向左上 / 右下，略微旋转 */
+    .photo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: min(42vw, 180px);
+      max-width: 180px;
+      aspect-ratio: 3 / 4;     /* 纵向照片比较好看，按需改 */
+      object-fit: cover;
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.4);
+      pointer-events: none;
+      z-index: 2;               /* 在卡片下面、弹窗上面 */
+    }
+
+    .photo-left.animate-left {
+      animation: photoLeft 1s ease-out forwards;
+    }
+    .photo-right.animate-right {
+      animation: photoRight 1s ease-out forwards;
+    }
+
+    @keyframes photoLeft {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3) rotate(0deg);
+      }
+      40% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0.95;
+        /* 从中间飞到左上角一带，略微旋转 */
+        transform: translate(-125%, -120%) scale(0.9) rotate(-12deg);
+      }
+    }
+
+    @keyframes photoRight {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.3) rotate(0deg);
+      }
+      40% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0.95;
+        /* 从中间飞到右下角一带，略微旋转 */
+        transform: translate(15%, 65%) scale(0.9) rotate(10deg);
+      }
+    }
+
+    /* 场景1：信件弹窗 */
+    .intro-wrapper {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 5;
+    }
+    .letter-card {
+      width: 94vw;
+      max-width: 360px;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(255, 126, 168, 0.4);
+      padding: 18px 18px 16px;
+      text-align: center;
+      animation: popIn 0.6s ease-out;
+      position: relative;
+    }
+    @keyframes popIn {
+      0%   { opacity: 0; transform: translateY(24px) scale(0.92); }
+      60%  { opacity: 1; transform: translateY(-4px) scale(1.02); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    .letter-card.fade-out {
+      animation: fadeOutUp 0.7s ease forwards;
+    }
+    @keyframes fadeOutUp {
+      to {
+        opacity: 0;
+        transform: translateY(-24px) scale(0.96);
+      }
+    }
+    .letter-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ff9ac4, #ffb6d9);
+      color: #fff;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    .letter-header span {
+      font-size: 15px;
+    }
+    .letter-title {
+      font-weight: 600;
+    }
+    .letter-body {
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 8px 0 16px;
+    }
+    .letter-btn {
+      display: inline-block;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 10px 36px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff7db3, #ffb9d9);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 10px 24px rgba(255, 126, 168, 0.6);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%   { transform: translateY(0) scale(1); box-shadow: 0 10px 24px rgba(255, 126, 168, 0.58); }
+      50%  { transform: translateY(-2px) scale(1.03); box-shadow: 0 14px 32px rgba(255, 126, 168, 0.75); }
+      100% { transform: translateY(0) scale(1); box-shadow: 0 10px 24px rgba(255, 126, 168, 0.58); }
+    }
+    .letter-tip {
+      margin-top: 10px;
+      font-size: 11px;
+      opacity: 0.7;
+    }
+
+    /* 场景2：铺满屏幕的祝福卡片 */
+    .cards-wrapper {
+      position: absolute;
+      inset: 0;
+      padding: 20px 14px 20px;
+      z-index: 3;  /* 在照片上层 */
+    }
+    .cards-header {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.88);
+      font-size: 12px;
+      box-shadow: 0 10px 26px rgba(255, 126, 168, 0.45);
+      backdrop-filter: blur(10px);
+      z-index: 5;
+    }
+    .cards-header span {
+      font-size: 14px;
+      margin-right: 4px;
+    }
+    #cardContainer {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .card {
+      position: absolute;
+      width: 68vw;
+      max-width: 260px;
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(191, 144, 193, 0.45);
+      overflow: hidden;
+      font-size: 14px;
+      opacity: 0;
+      pointer-events: none;
+      animation: bubbleLife 4s ease-in-out forwards;
+      z-index: 4;
+    }
+
+    /* 4 秒内：快速出现 → 停留 → 慢慢消失 */
+    @keyframes bubbleLife {
+      0% {
+        opacity: 0;
+        transform: translateY(16px) scale(0.9) rotate(var(--card-rotate));
+      }
+      20% {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(var(--card-rotate));
+      }
+      75% {
+        opacity: 1;
+        transform: translateY(-3px) scale(1.02) rotate(var(--card-rotate));
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-14px) scale(1.03) rotate(var(--card-rotate));
+      }
+    }
+
+    .card-inner {
+      padding: 8px 10px 10px;
+    }
+    .card-topbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      opacity: 0.85;
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .card-title-text {
+      font-weight: 600;
+    }
+    .card-text {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .hint-bottom {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      opacity: 0.75;
+      text-align: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(6px);
+      z-index: 5;
+    }
+
+    @media (max-width: 420px) {
+      .card {
+        width: 78vw;
+      }
+      .letter-card {
+        padding: 16px 14px 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene" id="sceneMain">
+    <!-- 背景小元素 -->
+    <div class="bg-icon" style="left:14%; top:18%;">💗</div>
+    <div class="bg-icon" style="left:76%; top:22%; animation-delay:0.6s;">✨</div>
+    <div class="bg-icon" style="left:10%; top:70%; animation-delay:0.2s;">🐱</div>
+    <div class="bg-icon" style="left:82%; top:72%; animation-delay:0.9s;">⭐</div>
+    <div class="bg-icon" style="left:20%; top:35%; animation-delay:0.3s;">🐱</div>
+    <div class="bg-icon" style="left:35%; top:80%; animation-delay:0.8s;">😺</div>
+    <div class="bg-icon" style="left:60%; top:50%; animation-delay:1.2s;">🐱</div>
+    <div class="bg-icon" style="left:88%; top:40%; animation-delay:1.6s;">😸</div>
+
+    <!-- 两张本地照片：记得把 src 换成你的文件名 -->
+    <img id="photoLeft"  class="photo photo-left"  src="photo1.jpg" alt="photo1" />
+    <img id="photoRight" class="photo photo-right" src="photo2.jpg" alt="photo2" />
+
+    <!-- 开头的“生日匿名信”弹窗 -->
+    <div class="intro-wrapper">
+      <div class="letter-card" id="letterCard">
+        <div class="letter-header">
+          <span>✉</span>
+          <span class="letter-title">BingGo!!!</span>
+        </div>
+        <div class="letter-body">
+          好像是1500公里外早到的信笺，<br>
+          确定要打开看看吗？
+        </div>
+        <button class="letter-btn" id="openLetterBtn">确定打开</button>
+        <div class="letter-tip">小提示：里面装的是 100% 甜度的祝福 ✨</div>
+      </div>
+    </div>
+
+    <!-- 祝福小卡片区域 -->
+    <div class="cards-wrapper hidden" id="cardsWrapper">
+      <div class="cards-header">
+        <span>🎀</span> 生日快乐嗷李溢阳
+      </div>
+      <div id="cardContainer"></div>
+      <div class="hint-bottom">照片会一直陪着你，小卡片也会在整个屏幕里慢慢出现又消失 💕</div>
+    </div>
+  </div>
+
+  <!-- 背景音乐：把 bgm.mp3 换成你的音乐文件名或在线链接 -->
+  <audio id="bgm" src="bgm.m4a" loop></audio>
+
+  <script>
+    // ===== 1. 祝福内容：在这里写你的祝福 =====
+    const messages = [
+      "今年的愿望很简单：我希望你平安健康，真心快乐，然后所有你偷偷许下的愿望都能慢慢长成现实。",
+      "新的一岁，不必太懂事，也要被温柔对待。好好爱自己，然后再去拥抱整个世界。",
+      "愿你以后所有的烦恼，都会被好吃的、好睡觉和好朋友一点点融化掉。",
+      "想把今天的好心情打包送给你：把压力关机，把快乐重启，把好运设置成自动续费。",
+      "愿你永远有底气说出那句：没关系，我还有自己，还有很多很多个明天。",
+      "希望你永远像小孩一样，对生活保持好奇，对喜欢的人坦荡又热烈。",
+      "愿你：爱自己有底气，被爱时有回应，失落时有地方可以躲一躲。",
+      "如果世界偶尔对你不太温柔，那就由我来多喜欢你一点点，帮你把不开心盖过去。",
+      "愿你不被生活磨平棱角，也不因现实失去光芒，一直做勇敢又柔软的自己。",
+      "高中很辛苦啦，不过也不要灰心嘛，你是最棒的小羊~对吧！",
+      "哦对，还有，考试加油啊哈哈哈哈哈哈哈哈哈哈",
+      "不知道我们会认识多久诶，网友嘛毕竟嘿嘿，不过无论怎样，都希望你回想起这个生日的时候，能记得自己被好好地祝福过，至少这次是啦",
+      "以后作业越来越多别哭哦哈哈哈，找我找我略略略",
+      "有空的话——嗯——其实找我无论什么事吧，我肯定都在的",
+      "最后，能认识你真的是一件很幸运的事情"   
+    ];
+
+    // 卡片背景颜色：粉色为主的浅色系
+    const pastelCards = [
+      "#ffe5ef", "#ffe9c8", "#e9f3ff", "#e4ffef",
+      "#f1e8ff", "#ffe9f6", "#e8fff7", "#fff4de"
+    ];
+
+    const cardContainer = document.getElementById("cardContainer");
+    const cardsWrapper  = document.getElementById("cardsWrapper");
+    const openLetterBtn = document.getElementById("openLetterBtn");
+    const letterCard    = document.getElementById("letterCard");
+    const photoLeft     = document.getElementById("photoLeft");
+    const photoRight    = document.getElementById("photoRight");
+    const bgm           = document.getElementById("bgm");
+
+    // 点击“确定打开”
+    openLetterBtn.addEventListener("click", () => {
+      // 1. 信件卡片淡出
+      letterCard.classList.add("fade-out");
+
+      // 2. 两张照片扇形飞开
+      photoLeft.classList.add("animate-left");
+      photoRight.classList.add("animate-right");
+
+      // 2.5 播放背景音乐（有些手机可能需要再点一次，但不会报错）
+      if (bgm) {
+        bgm.play().catch(() => {});
+      }
+
+      // 3. 一段时间后，隐藏弹窗，显示卡片区域并开始循环生成祝福卡片
+      setTimeout(() => {
+        document.querySelector(".intro-wrapper").classList.add("hidden");
+        cardsWrapper.classList.remove("hidden");
+        startLoopCards();
+      }, 900);  // 和照片动画时间差不多
+    });
+
+    // ===== 2. 小卡片循环：每 900ms 出现一张，4s 生命周期 =====
+    const appearInterval = 900;   // 每 900 ms 出现一张
+    const lifeTime      = 4000;   // 单张卡片动画时间（和 CSS animation 时间一致）
+
+    function startLoopCards() {
+      setInterval(() => {
+        createRandomCard();
+      }, appearInterval);
+    }
+
+    function createRandomCard() {
+      const msg = messages[Math.floor(Math.random() * messages.length)];
+      const card = document.createElement("div");
+      card.className = "card";
+
+      // 随机铺满整个屏幕（保留一点边距）
+      const topPercent  = 12 + Math.random() * 68;  // 12% ~ 80%
+      const leftPercent = 8  + Math.random() * 84;  // 8%  ~ 92%
+
+      const rotateDeg = (Math.random() - 0.5) * 14; // -7 ~ 7 度
+      card.style.setProperty("--card-rotate", rotateDeg + "deg");
+
+      card.style.top  = topPercent  + "%";
+      card.style.left = leftPercent + "%";
+
+      const bgColor = pastelCards[Math.floor(Math.random() * pastelCards.length)];
+      card.style.background = bgColor;
+
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-topbar">
+            <div class="dot" style="background:#ff5f57;"></div>
+            <div class="dot" style="background:#ffbd2e;"></div>
+            <div class="dot" style="background:#28c840;"></div>
+            <span class="card-title-text">温馨提示</span>
+          </div>
+          <div class="card-text">${msg}</div>
+        </div>
+      `;
+
+      cardContainer.appendChild(card);
+
+      // 动画结束后移除，避免 DOM 越堆越多
+      setTimeout(() => {
+        card.remove();
+      }, lifeTime + 150);
+    }
+  </script>
+</body>
+</html>
